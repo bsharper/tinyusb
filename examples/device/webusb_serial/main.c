@@ -37,6 +37,7 @@ static const char *CONTROLLER_NAME = "Racoon Worx Drone Config Controller";
 // LED control commands
 #define CMD_LED_ON  0x06
 #define CMD_LED_OFF 0x07
+#define CMD_LED_DANCE 0x08
 
 #define RESP_OK     0x00
 #define RESP_ERROR  0x01
@@ -52,6 +53,7 @@ static size_t rxlen = 0;
 
 // Prototypes
 static void webusb_task(void);
+static void hello_host(void);
 static void handle_binary_packet(void);
 static void send_response(uint8_t status, const uint8_t* data, uint16_t data_len);
 static void send_event(uint8_t event_code, const uint8_t* data, uint16_t data_len);
@@ -69,6 +71,7 @@ static void cmd_dump_binary(void);
 static void cmd_info_binary(void);
 static void cmd_led_on(void);
 static void cmd_led_off(void);
+static void cmd_led_dance(void);
 // LED pulse state
 static volatile uint32_t led_pulse_until_ms = 0;
 
@@ -203,6 +206,7 @@ static void cmd_write_binary(const uint8_t* data, uint16_t data_len) {
   if (!is_magic_present()) {
     init_empty_page();
   }
+
   flash_unlock();
   bool ok = flash_write(LAST_PAGE_ADDR + sizeof(MAGIC), data, write_len);
   flash_lock();
@@ -250,6 +254,17 @@ static void cmd_led_on(void) {
 static void cmd_led_off(void) {
   board_led_write(false);
   send_response(RESP_OK, (const uint8_t*)"LED_OFF", 7);
+}
+
+static void cmd_led_dance(void) {
+  // Simple LED dance: 3 quick pulses
+  for (int i = 0; i < 3; i++) {
+    board_led_write(true);
+    for (volatile int j = 0; j < 100000; j++); // crude delay
+    board_led_write(false);
+    for (volatile int j = 0; j < 100000; j++);
+  }
+  send_response(RESP_OK, (const uint8_t*)"LED_DANCE", 9);
 }
 
 int main(void) {
@@ -339,6 +354,9 @@ static void handle_binary_packet(void) {
       break;
     case CMD_LED_OFF:
       cmd_led_off();
+      break;
+    case CMD_LED_DANCE:
+      cmd_led_dance();
       break;
     default:
       send_response(RESP_ERROR, (const uint8_t*)"UNKNOWN_CMD", 11);
@@ -438,7 +456,11 @@ void tud_mount_cb(void) {
   protocol_reset();
   reset_comm_state();
   // Emit async event: connected
-  uint8_t ev = 0x01; // EV_CONNECTED
+  hello_host();
+}
+
+void hello_host(void) {
+ uint8_t ev = 0x01; // EV_CONNECTED
   char info[96];
   int n = snprintf(info, sizeof(info), "%s (%s)", CONTROLLER_NAME, CONTROLLER_VERSION);
   if (n < 0) n = 0;
@@ -447,7 +469,9 @@ void tud_mount_cb(void) {
 
 void tud_umount_cb(void) { }
 void tud_suspend_cb(bool remote_wakeup_en) { (void)remote_wakeup_en; }
-void tud_resume_cb(void) { }
+void tud_resume_cb(void) {
+  hello_host();
+ }
 
 // Invoked when received new data (not used, we poll with tud_vendor_available())
 void tud_vendor_rx_cb(uint8_t itf, uint8_t const* buffer, uint16_t bufsize) {
