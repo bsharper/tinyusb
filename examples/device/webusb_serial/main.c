@@ -283,20 +283,10 @@ int main(void) {
 
   // Ensure LED starts off
   board_led_write(false);
-  static uint32_t last_hello_time = 0;
-  uint32_t current_time = board_millis();
   while (1) {
     tud_task(); // device
     webusb_task();
     led_tick();
-    // For periodic hello message
-    current_time = board_millis();
-
-    // Send hello message every 10 seconds
-    if (current_time - last_hello_time >= 10000) {
-      hello_host();
-      last_hello_time = current_time;
-    }
   }
 }
 
