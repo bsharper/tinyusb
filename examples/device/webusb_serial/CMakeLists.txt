@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.20)
 # Use TinyUSB family support helpers
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../../hw/bsp/family_support.cmake)
 
-# Use custom project name instead of auto-generated one
 set(PROJECT "drone-config-usb")
+
 
 project(${PROJECT} C CXX ASM)
 
