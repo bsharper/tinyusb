@@ -20,7 +20,7 @@ target_sources(${PROJECT} PUBLIC
 )
 
 target_include_directories(${PROJECT} PUBLIC
-  ${CMAKE_CURRENT_LIST_DIR}/src
+  ${CMAKE_CURRENT_LIST_DIR}
 )
 
 target_compile_definitions(${PROJECT} PUBLIC
